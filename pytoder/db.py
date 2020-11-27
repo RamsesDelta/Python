@@ -39,7 +39,7 @@ def init_db():
 @with_appcontext
 def ini_db_command():
     init_db()
-    click.echo('base de datos creada')
+    click.echo('base de datos inicializada')
 
 
 def init_app(app):
