@@ -1,11 +1,11 @@
 import functools
 
 from flask import(
-    Blueprint, flash, g, render_template, request, url_for, session
+    Blueprint, flash, g, render_template, request, url_for, session, redirect
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from db import get_db
+from .db import get_db
 
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -19,7 +19,7 @@ def register():
         db, c = get_db()
         error = None
         c.execute(
-            'select id from user where username= %s', (username)
+            'select id from user where username= %s', (username,)
         )
         if not username:
             error = 'Username es requerido'
@@ -48,7 +48,7 @@ def login():
         db, c = get_db()
         error = None
         c.execute(
-            'select * from user where username = %s', (username)
+            'select * from user where username = %s', (username,)
         )
         user = c.fetchone()
         if user is None:
@@ -59,7 +59,37 @@ def login():
         if error is None:
             session.clear()
             session['user_id'] = user['id']
-            return redirect(url_for('index'))
+            return redirect(url_for('todo.index'))
 
         flash(error)
     return render_template('auth/login.html')
+
+
+@bp.before_app_request
+def load_logged_in_user():
+    print('dentro del before_app_request')
+    user_id = session.get('user_id')
+
+    if user_id is None:
+        g.user = None
+    else:
+        db, c = get_db()
+        c.execute(
+            'select * from user where id = %s', (user_id,)
+        )
+        g.user = c.fetchone()
+
+
+def login_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            return redirect(url_for('auth.login'))
+        return view(**kwargs)
+    return wrapped_view
+
+
+@bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('auth.login'))

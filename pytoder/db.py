@@ -14,7 +14,7 @@ def get_db():
             password=current_app.config['DATABASE_PASSWORD'],
             database=current_app.config['DATABASE']
         )
-        g.c = g.db.cursor(dictionary=True)
+        g.c = g.db.cursor(buffered=True, dictionary=True)
 
     return g.db, g.c
 
